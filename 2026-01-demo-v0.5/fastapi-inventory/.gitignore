@@ -1,0 +1,12 @@
+
+.env
+*.pem
+*.key
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.sqlite3
+*.db
+.vscode/
+.DS_Store

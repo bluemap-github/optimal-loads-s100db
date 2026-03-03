@@ -1,0 +1,100 @@
+{# templates/inventory.html #}
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  body { background:#fff; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  h1 { font-weight: 700; margin: 18px 0 10px; }
+  table { border-collapse: collapse; width: 720px; }
+  th, td { padding: 4px 10px; text-align: left; }
+  thead th { border-bottom: 1px solid #aaa; }
+  tbody td { border-bottom: 1px solid #eee; }
+  a { color: #00f; text-decoration: underline; }
+  .muted { color:#666; }
+  .btn { padding:2px 8px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; }
+  .btn:hover { background:#f7f7f7; }
+</style>
+
+<h2 class="mono">
+  <div>Index of</div>
+  {%- for part in current_path.strip('/').split('/') -%}
+    /
+    {%- if '-' in part and part[0:4].isdigit() -%}
+      {{ part.split('-')[-1] }}
+    {%- else -%}
+      {{ part }}
+    {%- endif -%}
+  {%- endfor -%}
+</h2>
+
+
+{% if description %}
+  <div class="mono muted" style="margin:6px 0 12px;">
+    {{ description }}
+  </div>
+{% endif %}
+
+<table class="mono">
+  <thead>
+    <tr>
+      <th style="width:360px;">Name</th>
+      <th style="width:190px;">Last modified</th>
+      <th style="width:90px;">Size</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {# Parent Directory #}
+    {% if parent_path %}
+    <tr>
+      <td><a href="/inventory?path={{ parent_path|urlencode }}">Parent Directory</a></td>
+      <td class="muted">-</td>
+      <td class="muted">-</td>
+    </tr>
+    {% endif %}
+
+    {# Entries #}
+    {% for e in entries %}
+    <tr>
+      <td>
+        {% if e.is_dir %}
+          <a href="/inventory?path={{ e.path|urlencode }}">{{ e.name }}/</a>
+        {% else %}
+          <button
+            type="button"
+            class="btn mono"
+            data-url="{{ e.api_url }}"
+            onclick="copyApiUrl(this)"
+          >
+            Copy API URL
+          </button>
+          <span class="mono" style="margin-left:8px;">{{ e.name }}</span>
+        {% endif %}
+      </td>
+      <td>{{ e.last_modified or "-" }}</td>
+      <td>{{ e.size_human or "-" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+<script>
+  async function copyApiUrl(btn) {
+    const url = btn.dataset.url || "";
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      const old = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = old), 900);
+    } catch (e) {
+      // HTTPS 아님 / 권한 문제 fallback
+      window.prompt("Copy this URL:", url);
+    }
+  }
+</script>
+
+{% endblock %}

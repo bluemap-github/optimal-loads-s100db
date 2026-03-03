@@ -1,0 +1,463 @@
+{# app/templates/ingestion.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Ingestion</h2>
+
+
+<style>
+  .tz-board {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(140px, 1fr));
+    gap: 10px;
+    margin: 12px 0 16px 0;
+  }
+  .tz-card {
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fafafa;
+  }
+  .tz-name {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tz-time {
+    margin-top: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .tz-offset {
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+
+  .time-matrix {
+    display: grid;
+    grid-template-columns: 120px repeat(9, minmax(140px, 1fr));
+    gap: 6px 10px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .time-matrix .hdr {
+    font-size: 11px;
+    color: #666;
+    font-weight: 700;
+  }
+  .time-matrix .rowlbl {
+    font-size: 12px;
+    color: #333;
+    font-weight: 700;
+  }
+  .time-matrix .cell {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1px solid #efefef;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sticky-head thead th {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
+    border-bottom: 1px solid #ddd;
+  }
+  
+
+  .toggle-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border:1px solid #e2e2e2;
+    border-radius:999px;
+    background:#fff;
+    color:#222;
+    font-size:12px;
+    line-height:1;
+    cursor:pointer;
+    user-select:none;
+    transition:transform .06s ease, background .15s ease, border-color .15s ease;
+  }
+  .toggle-btn:hover{ background:#f6f6f6; border-color:#d6d6d6; }
+  .toggle-btn:active{ transform:translateY(1px); }
+  .toggle-btn:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.08);
+  }
+
+  .toggle-btn .chev{
+    display:inline-block;
+    width:14px;
+    text-align:center;
+    transition:transform .15s ease;
+    opacity:.75;
+  }
+  .toggle-btn[aria-expanded="true"] .chev{
+    transform:rotate(90deg);
+    opacity:1;
+  }
+  .toggle-btn .cnt{
+    font-variant-numeric: tabular-nums;
+    font-weight:700;
+  }
+
+  /* 에러(빨간 계열) 토글은 약간만 다르게 */
+  .toggle-btn.danger{ border-color:#f0d6d6; }
+  .toggle-btn.danger:hover{ background:#fff5f5; border-color:#e8bcbc; }
+</style>
+
+<div style="padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:16px;">
+  <div><b>enabled</b>: {{ control.enabled }}</div>
+  <div><b>running</b>: {{ control.running }}</div>
+  <div><b>status</b>: {{ control.status }}</div>
+  <div><b>last_started_at</b>: {{ control.last_started_at }}</div>
+  <div><b>last_finished_at</b>: {{ control.last_finished_at }}</div>
+  <div><b>last_heartbeat_at</b>: {{ control.last_heartbeat_at }}</div>
+  {% if control.error %}
+    <div style="color:#b00020;"><b>error</b>: {{ control.error }}</div>
+  {% endif %}
+
+  <div style="margin-top:10px;">
+    {% if control.enabled %}
+      <form method="post" action="/ingestion/pause" style="display:inline;">
+        <button type="submit">Pause</button>
+      </form>
+    {% else %}
+      <form method="post" action="/ingestion/resume" style="display:inline;">
+        <button type="submit">Resume</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{# -------------------------------
+  ✅ 상단: 타임존 현재시각 보드
+  ------------------------------- #}
+<div class="tz-board" id="tz-board">
+  {# JS가 채움 #}
+</div>
+
+<form method="get" action="/ingestion" style="margin-bottom:12px;">
+  <label>Status:</label>
+  <select name="status">
+    <option value="">(all)</option>
+    {% for s in statuses %}
+      <option value="{{ s }}" {% if filters.status==s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Variable:</label>
+  <select name="variable">
+    <option value="">(all)</option>
+    {% for v in vars %}
+      <option value="{{ v }}" {% if filters.variable==v %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Stream:</label>
+  <select name="stream">
+    <option value="">(all)</option>
+    {% for s in streams %}
+      <option value="{{ s }}" {% if filters.stream==s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Limit:</label>
+  <input name="limit" value="{{ filters.limit }}" style="width:70px;" />
+
+  <button type="submit" style="margin-left:10px;">Apply</button>
+</form>
+
+<table style="width:100%; border-collapse:collapse;">
+  <thead>
+    <tr>
+      <th align="left">run_time_utc</th>
+      <th align="left">stream</th>
+      <th align="left">variable</th>
+      <th align="left">status</th>
+      <th align="left">started_at</th>
+      <th align="left">finished_at</th>
+      <th align="left">downloaded</th>
+      <th align="left">uploaded</th>
+      <th align="left">mongo</th>
+      <th align="left">failed</th>
+      <th align="left">attempts</th>
+      <th align="left">errors</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for r in runs %}
+      {# ✅ loop.parent 대체용: 현재 run index 저장 #}
+      {% set run_idx = loop.index %}
+
+      {# ✅ attempts 유무 #}
+      {% set has_attempts = (r.attempts is defined) and (r.attempts|length > 0) %}
+
+      {# ✅ started/finished/counters 안전 선택 #}
+      {% set started = (r.started_at_last if r.started_at_last is defined and r.started_at_last else r.started_at) %}
+      {% set finished = (r.finished_at_last if r.finished_at_last is defined and r.finished_at_last else r.finished_at) %}
+
+      {# counters는 "last -> legacy -> empty dict" 순으로 안전하게 #}
+      {% if r.counters_last is defined and r.counters_last %}
+        {% set counters = r.counters_last %}
+      {% elif r.counters is defined and r.counters %}
+        {% set counters = r.counters %}
+      {% else %}
+        {% set counters = {} %}
+      {% endif %}
+
+      {% set attempts_cnt = (r.attempts_cnt if r.attempts_cnt is defined else (r.attempts|length if has_attempts else 0)) %}
+
+      <!-- 1) 메인 row -->
+      <tr>
+        <td>{{ r.run_time_utc }}</td>
+        <td>{{ r.stream }}</td>
+        <td>{{ r.variable }}</td>
+        <td class="{{ r.status }}">{{ r.status }}</td>
+        <td>{{ started }}</td>
+        <td>{{ finished }}</td>
+
+        {# ✅ 여기서 절대 r.counters.xxx 쓰지 말고 counters.xxx만 사용 #}
+        <td>{{ counters.downloaded | default(0) }}</td>
+        <td>{{ counters.uploaded | default(0) }}</td>
+        <td>{{ counters.mongo_written | default(0) }}</td>
+        <td>{{ counters.failed | default(0) }}</td>
+
+        <td>
+          {% if has_attempts %}
+            <button type="button"
+                  class="toggle-btn js-toggle"
+                  data-target="att-{{ run_idx }}"
+                  aria-expanded="false">
+            <span class="chev">▸</span>
+            <span class="cnt">{{ attempts_cnt }}</span>
+          </button>
+
+          {% else %}
+            -
+          {% endif %}
+        </td>
+
+        <td>
+          {% if r.errors_cnt is defined and r.errors_cnt > 0 %}
+            <button type="button"
+                  class="toggle-btn danger js-toggle"
+                  data-target="err-{{ run_idx }}"
+                  aria-expanded="false">
+            <span class="chev">▸</span>
+            <span class="cnt">{{ r.errors_cnt }}</span>
+          </button>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- 2) attempts 상세 row (숨김) -->
+      {% if has_attempts %}
+      <tr id="att-{{ run_idx }}" class="att-row" hidden>
+        <td colspan="12" style="padding:10px; background:#fcfcfc; border-top:1px solid #eee;">
+          <div style="font-weight:700; margin-bottom:8px;">
+            Attempts ({{ attempts_cnt }})
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid #ddd;">
+                <th align="left">no</th>
+                <th align="left">attempt_id</th>
+                <th align="left">status</th>
+                <th align="left">trigger</th>
+                <th align="left">started_at</th>
+                <th align="left">finished_at</th>
+                <th align="left">dur</th>
+                <th align="left">downloaded</th>
+                <th align="left">existed</th>
+                <th align="left">uploaded</th>
+                <th align="left">mongo</th>
+                <th align="left">failed</th>
+                <th align="left">errors</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for a in r.attempts %}
+                {% set a_err_cnt = (a.errors|length if a.errors is defined else 0) %}
+
+                {# attempt row #}
+                <tr style="border-bottom:1px solid #f0f0f0;">
+                  <td>{{ a.attempt_no }}</td>
+                  <td style="font-family:ui-monospace, Menlo, Consolas, monospace;">{{ a.attempt_id }}</td>
+                  <td class="{{ a.status }}">{{ a.status }}</td>
+                  <td>{{ a.trigger }}</td>
+                  <td>{{ a.started_at }}</td>
+                  <td>{{ a.finished_at }}</td>
+                  <td>{{ a.duration_sec }}</td>
+
+                  <td>{{ (a.counters.downloaded if a.counters is defined else 0) | default(0) }}</td>
+                  <td>{{ (a.counters.existed if a.counters is defined else 0) | default(0) }}</td>
+                  <td>{{ (a.counters.uploaded if a.counters is defined else 0) | default(0) }}</td>
+                  <td>{{ (a.counters.mongo_written if a.counters is defined else 0) | default(0) }}</td>
+                  <td>{{ (a.counters.failed if a.counters is defined else 0) | default(0) }}</td>
+
+                  <td>
+                    {% if a_err_cnt > 0 %}
+                      <button type="button"
+                              class="toggle-btn danger js-toggle"
+                              data-target="att-err-{{ run_idx }}-{{ loop.index }}"
+                              aria-expanded="false">
+                        <span class="chev">▸</span>
+                        <span class="cnt">{{ a_err_cnt }}</span>
+                      </button>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+
+                <!-- attempt 에러 상세 row (숨김) -->
+                <tr id="att-err-{{ run_idx }}-{{ loop.index }}" hidden>
+                  <td colspan="13">
+                    <pre style="margin:0; padding:10px; background:#f7f7f7; border:1px solid #eee; overflow:auto; white-space:pre-wrap;">{{ a.errors | tojson(indent=2) }}</pre>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </td>
+      </tr>
+      {% endif %}
+
+      <!-- 3) 기존 에러 상세 row (숨김) -->
+      <tr id="err-{{ run_idx }}" class="err-row" hidden>
+        <td colspan="12">
+          <pre class="err-box" style="margin:0; padding:10px; background:#f7f7f7; border:1px solid #eee; overflow:auto; white-space:pre-wrap;">
+{{ r.errors | tojson(indent=2) }}
+          </pre>
+        </td>
+      </tr>
+
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  // 모든 토글(에러/attempt/attempt-err) 공통 처리
+  document.querySelectorAll(".js-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-target");
+      const row = document.getElementById(id);
+      if (!row) return;
+
+      const willOpen = row.hidden;   // hidden이면 열어야 함
+      row.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+  });
+
+  const TZS = [
+    { key: "UTC", label: "UTC💥", tz: "UTC" },
+    { key: "PT", label: "포르투갈(포르토)", tz: "Europe/Lisbon" },
+    { key: "DE", label: "독일(본)", tz: "Europe/Berlin" },
+    { key: "IT", label: "이탈리아(볼로냐)", tz: "Europe/Rome" },
+    { key: "DK", label: "덴마크", tz: "Europe/Copenhagen" },
+    { key: "NO", label: "노르웨이(오슬로)", tz: "Europe/Oslo" },
+    { key: "TR", label: "튀르키예", tz: "Europe/Istanbul" },
+    { key: "SG", label: "싱가포르", tz: "Asia/Singapore" },
+    { key: "KR", label: "한국", tz: "Asia/Seoul" },
+  ];
+
+  function safeDate(iso) {
+    if (!iso) return null;
+    // Jinja가 datetime을 "2026-01-19 00:00:00+00:00"처럼 찍는 경우를 대비해서 살짝 보정
+    const s = String(iso).trim().replace(" ", "T");
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmt(iso, tz) {
+    const d = safeDate(iso);
+    if (!d) return "-";
+    const f = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    // sv-SE: 2026-01-19 09:00:00 형태로 고정돼서 보기 좋음
+    return f.format(d).replace(" ", " ");
+  }
+
+  function offsetLabel(tz) {
+    try {
+      const d = new Date();
+      const parts = new Intl.DateTimeFormat("en", {
+        timeZone: tz,
+        timeZoneName: "shortOffset",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(d);
+      const p = parts.find(x => x.type === "timeZoneName");
+      return p ? p.value : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // ✅ 상단 현재시각 보드
+  function renderBoard() {
+    const el = document.getElementById("tz-board");
+    el.innerHTML = "";
+    TZS.forEach(z => {
+      const card = document.createElement("div");
+      card.className = "tz-card";
+
+      const name = document.createElement("div");
+      name.className = "tz-name";
+      name.innerHTML = `<span>${z.label}</span><span class="tz-offset">${offsetLabel(z.tz)}</span>`;
+
+      const time = document.createElement("div");
+      time.className = "tz-time";
+      time.setAttribute("data-tz", z.tz);
+
+      card.appendChild(name);
+      card.appendChild(time);
+      el.appendChild(card);
+    });
+
+    tickBoard();
+    setInterval(tickBoard, 1000);
+  }
+
+  function tickBoard() {
+    document.querySelectorAll(".tz-time[data-tz]").forEach(node => {
+      const tz = node.getAttribute("data-tz");
+      node.textContent = fmt(new Date().toISOString(), tz);
+    });
+  }
+  
+  // init
+  renderBoard();
+</script>
+
+
+{% endblock %}

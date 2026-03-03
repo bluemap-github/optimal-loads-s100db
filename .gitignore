@@ -1,0 +1,71 @@
+# files
+*.nc
+*.grib2
+*.grib
+
+
+# Node modules
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# VSCode settings
+.vscode/
+
+# pnpm
+pnpm-lock.yaml
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional: IDE 관련
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Optional: TypeScript build artifacts
+dist/
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE/editor specific
+.vscode/
+.idea/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and outputs
+*.log
+*.out
+
+
+# MongoDB dump files (if any)
+dump/

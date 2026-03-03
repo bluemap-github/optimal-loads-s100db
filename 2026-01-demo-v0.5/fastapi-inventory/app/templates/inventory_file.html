@@ -1,0 +1,79 @@
+{# templates/inventory_file.html #}
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  body { background:#fff; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  h1 { margin: 18px 0 8px; }
+  .muted { color:#666; }
+  table { border-collapse: collapse; width: 100%; max-width: 1100px; }
+  th, td { border: 1px solid #e6e6e6; padding: 10px; vertical-align: top; }
+  th { background: #fafafa; width: 240px; text-transform: none; }
+  pre { margin: 0; padding: 10px; background: #fcfcfc; border: 1px solid #eee; border-radius: 8px; overflow: auto; }
+  a { color: #00f; text-decoration: underline; }
+  .wrap { max-width: 1200px; }
+  .btn { display:inline-block; padding:6px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; text-decoration:none; }
+</style>
+
+<div class="wrap">
+  <h1 class="mono">File metadata</h1>
+  <div class="muted mono" style="margin-bottom:12px;">
+    natural_key: {{ nk }}
+  </div>
+
+  {% if display_name %}
+  <div class="mono" style="margin-bottom:12px;">
+    name: {{ display_name }}
+  </div>
+  {% endif %}
+
+  {% if s3_key %}
+  <div class="muted mono" style="margin-bottom:12px;">
+    s3.key: {{ s3_key }}
+  </div>
+  {% endif %}
+
+  <div style="margin-bottom:12px;">
+    <a class="btn mono" href="/inventory?path={{ ("/" ~ inventory_directory)|urlencode }}">← Back to directory</a>
+  </div>
+
+  <table class="mono">
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <th>{{ r.k }}</th>
+        <td>
+          {% if r.is_json %}
+            <pre>{{ r.v }}</pre>
+          {% else %}
+            {{ r.v }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if other and other|length > 0 %}
+    <h2 class="mono" style="margin-top:18px;">Other fields</h2>
+    <table class="mono">
+      <tbody>
+        {% for r in other %}
+        <tr>
+          <th>{{ r.k }}</th>
+          <td>
+            {% if r.is_json %}
+              <pre>{{ r.v }}</pre>
+            {% else %}
+              {{ r.v }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+
+{% endblock %}

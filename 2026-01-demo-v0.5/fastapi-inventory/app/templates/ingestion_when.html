@@ -1,0 +1,367 @@
+{# app/templates/ingestion_when.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Ingestion When (Probe)</h2>
+
+<style>
+  .tz-board {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(140px, 1fr));
+    gap: 10px;
+    margin: 12px 0 16px 0;
+  }
+  .tz-card {
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fafafa;
+  }
+  .tz-name {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tz-time {
+    margin-top: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .tz-offset {
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+
+  .time-matrix {
+    display: grid;
+    grid-template-columns: 120px repeat(9, minmax(140px, 1fr));
+    gap: 6px 10px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .time-matrix .hdr {
+    font-size: 11px;
+    color: #666;
+    font-weight: 700;
+  }
+  .time-matrix .rowlbl {
+    font-size: 12px;
+    color: #333;
+    font-weight: 700;
+  }
+  .time-matrix .cell {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1px solid #efefef;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sticky-head thead th {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
+    border-bottom: 1px solid #ddd;
+  }
+</style>
+
+<form method="get" action="/ingestion-when" style="margin-bottom:12px;">
+  <label>Found:</label>
+  <select name="found">
+    <option value="">(all)</option>
+    {% for f in founds %}
+      <option value="{{ f }}" {% if filters.found==f %}selected{% endif %}>{{ f }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Variable:</label>
+  <select name="variable">
+    <option value="">(all)</option>
+    {% for v in vars %}
+      <option value="{{ v }}" {% if filters.variable==v %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Stream:</label>
+  <select name="stream">
+    <option value="">(all)</option>
+    {% for s in streams %}
+      <option value="{{ s }}" {% if filters.stream==s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="margin-left:10px;">Limit:</label>
+  <input name="limit" value="{{ filters.limit }}" style="width:80px;" />
+
+  <button type="submit" style="margin-left:10px;">Apply</button>
+</form>
+
+{# -------------------------------
+   ✅ 상단: 타임존 현재시각 보드
+   ------------------------------- #} 
+<div class="tz-board" id="tz-board">
+  {# JS가 채움 #}
+</div>
+
+<table class="sticky-head" style="width:100%; border-collapse:collapse;">
+  <thead>
+    <tr>
+      <th align="left">run_time_utc</th>
+      <th align="left">stream</th>
+      <th align="left">variable</th>
+      <th align="left">step</th>
+      <th align="left">found</th>
+      <th align="left">checked_at</th>
+      <th align="left">first_found_at</th>
+      <th align="left">http</th>
+      <th align="left">latency_ms</th>
+      <th align="left">times(9 TZ)</th>
+      <th align="left">detail</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for r in runs %}
+    <tr>
+      <td class="iso" data-iso="{{ r.run_time_utc }}">{{ r.run_time_utc }}</td>
+      <td>{{ r.stream }}</td>
+      <td>{{ r.variable }}</td>
+      <td>{{ r.step_hours }}</td>
+      <td>
+        {% if r.found %}
+          <span style="color:green; font-weight:bold;">true</span>
+        {% else %}
+          <span style="color:#b00020; font-weight:bold;">false</span>
+        {% endif %}
+      </td>
+      <td class="iso" data-iso="{{ r.checked_at }}">{{ r.checked_at }}</td>
+      <td class="iso" data-iso="{{ r.first_found_at }}">{{ r.first_found_at }}</td>
+      <td>{{ r.probe_http_status }}</td>
+      <td>{{ r.probe_latency_ms }}</td>
+
+      {# ✅ 새로 추가: 9개 타임존 변환 미니 보드 #}
+      <td>
+        <button type="button" class="tz-toggle" data-target="tz-{{ loop.index }}">
+          🕒 보기
+        </button>
+      </td>
+
+      <td>
+        <button type="button" class="det-toggle" data-target="det-{{ loop.index }}">
+          ▼ 보기
+        </button>
+      </td>
+    </tr>
+
+    {# ✅ 9개 타임존 보드 펼침 row #}
+    <tr id="tz-{{ loop.index }}" class="tz-row" style="display:none;">
+      <td colspan="11">
+        <div
+          class="time-matrix"
+          data-run="{{ r.run_time_utc }}"
+          data-checked="{{ r.checked_at }}"
+          data-first="{{ r.first_found_at }}"
+        >
+          <div></div>
+          <div class="hdr">UTC</div>
+          <div class="hdr">DE (Bonn)</div>
+          <div class="hdr">IT (Bologna)</div>
+          <div class="hdr">PT (Porto)</div>
+          <div class="hdr">NO (Oslo)</div>
+          <div class="hdr">SG</div>
+          <div class="hdr">TR</div>
+          <div class="hdr">DK</div>
+          <div class="hdr">KR</div>
+
+          <div class="rowlbl">run_time</div>
+          <div class="cell" data-k="run" data-tz="UTC"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Berlin"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Rome"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Lisbon"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Oslo"></div>
+          <div class="cell" data-k="run" data-tz="Asia/Singapore"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Istanbul"></div>
+          <div class="cell" data-k="run" data-tz="Europe/Copenhagen"></div>
+          <div class="cell" data-k="run" data-tz="Asia/Seoul"></div>
+
+          <div class="rowlbl">checked_at</div>
+          <div class="cell" data-k="checked" data-tz="UTC"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Berlin"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Rome"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Lisbon"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Oslo"></div>
+          <div class="cell" data-k="checked" data-tz="Asia/Singapore"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Istanbul"></div>
+          <div class="cell" data-k="checked" data-tz="Europe/Copenhagen"></div>
+          <div class="cell" data-k="checked" data-tz="Asia/Seoul"></div>
+
+          <div class="rowlbl">first_found</div>
+          <div class="cell" data-k="first" data-tz="UTC"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Berlin"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Rome"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Lisbon"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Oslo"></div>
+          <div class="cell" data-k="first" data-tz="Asia/Singapore"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Istanbul"></div>
+          <div class="cell" data-k="first" data-tz="Europe/Copenhagen"></div>
+          <div class="cell" data-k="first" data-tz="Asia/Seoul"></div>
+        </div>
+      </td>
+    </tr>
+
+    <tr id="det-{{ loop.index }}" class="det-row" style="display:none;">
+      <td colspan="11">
+        <pre style="margin:0; padding:10px; background:#f7f7f7; border:1px solid #eee; overflow:auto; white-space:pre-wrap;">
+probe_method: {{ r.probe_method }}
+probe_url: {{ r.probe_url }}
+error: {{ r.error }}
+        </pre>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  const TZS = [
+    { key: "UTC", label: "UTC💥", tz: "UTC" },
+    { key: "PT", label: "포르투갈(포르토)", tz: "Europe/Lisbon" },
+    { key: "DE", label: "독일(본)", tz: "Europe/Berlin" },
+    { key: "IT", label: "이탈리아(볼로냐)", tz: "Europe/Rome" },
+    { key: "DK", label: "덴마크", tz: "Europe/Copenhagen" },
+    { key: "NO", label: "노르웨이(오슬로)", tz: "Europe/Oslo" },
+    { key: "TR", label: "튀르키예", tz: "Europe/Istanbul" },
+    { key: "SG", label: "싱가포르", tz: "Asia/Singapore" },
+    { key: "KR", label: "한국", tz: "Asia/Seoul" },
+  ];
+
+  function safeDate(iso) {
+    if (!iso) return null;
+    // Jinja가 datetime을 "2026-01-19 00:00:00+00:00"처럼 찍는 경우를 대비해서 살짝 보정
+    const s = String(iso).trim().replace(" ", "T");
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmt(iso, tz) {
+    const d = safeDate(iso);
+    if (!d) return "-";
+    const f = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    // sv-SE: 2026-01-19 09:00:00 형태로 고정돼서 보기 좋음
+    return f.format(d).replace(" ", " ");
+  }
+
+  function offsetLabel(tz) {
+    try {
+      const d = new Date();
+      const parts = new Intl.DateTimeFormat("en", {
+        timeZone: tz,
+        timeZoneName: "shortOffset",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(d);
+      const p = parts.find(x => x.type === "timeZoneName");
+      return p ? p.value : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // ✅ 상단 현재시각 보드
+  function renderBoard() {
+    const el = document.getElementById("tz-board");
+    el.innerHTML = "";
+    TZS.forEach(z => {
+      const card = document.createElement("div");
+      card.className = "tz-card";
+
+      const name = document.createElement("div");
+      name.className = "tz-name";
+      name.innerHTML = `<span>${z.label}</span><span class="tz-offset">${offsetLabel(z.tz)}</span>`;
+
+      const time = document.createElement("div");
+      time.className = "tz-time";
+      time.setAttribute("data-tz", z.tz);
+
+      card.appendChild(name);
+      card.appendChild(time);
+      el.appendChild(card);
+    });
+
+    tickBoard();
+    setInterval(tickBoard, 1000);
+  }
+
+  function tickBoard() {
+    document.querySelectorAll(".tz-time[data-tz]").forEach(node => {
+      const tz = node.getAttribute("data-tz");
+      node.textContent = fmt(new Date().toISOString(), tz);
+    });
+  }
+
+  // ✅ row별 time-matrix 채우기
+  function fillMatrix(matrixEl) {
+    const run = matrixEl.getAttribute("data-run");
+    const checked = matrixEl.getAttribute("data-checked");
+    const first = matrixEl.getAttribute("data-first");
+
+    matrixEl.querySelectorAll(".cell").forEach(cell => {
+      const k = cell.getAttribute("data-k");
+      const tz = cell.getAttribute("data-tz");
+      const iso = (k === "run") ? run : (k === "checked" ? checked : first);
+      cell.textContent = fmt(iso, tz);
+      cell.title = `${k}: ${iso} @ ${tz}`;
+    });
+  }
+
+  // ✅ 토글: detail
+  document.querySelectorAll(".det-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-target");
+      const row = document.getElementById(id);
+      const open = row.style.display !== "none";
+      row.style.display = open ? "none" : "table-row";
+      btn.textContent = (open ? "▼ 보기" : "▲ 닫기");
+    });
+  });
+
+  // ✅ 토글: tz matrix
+  document.querySelectorAll(".tz-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-target");
+      const row = document.getElementById(id);
+      const open = row.style.display !== "none";
+      row.style.display = open ? "none" : "table-row";
+      btn.textContent = open ? "🕒 보기" : "🕒 닫기";
+
+      if (!open) {
+        const matrix = row.querySelector(".time-matrix");
+        fillMatrix(matrix);
+      }
+    });
+  });
+
+  // init
+  renderBoard();
+</script>
+{% endblock %}
