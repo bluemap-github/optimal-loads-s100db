@@ -6,7 +6,7 @@
   <title>Optimal-LOADS • Consortium Preview — Demo v0.3 (ECMWF Open Data)</title>
   <style>
     :root {
-      --bg: #ffffff;
+      --bg: #fafafa;
       --text: #0f172a;
       --muted: #475569;
       --brand: #0284c7;
@@ -16,230 +16,506 @@
       --warn: #d97706;
       --danger: #dc2626;
 
-      --shadow: 0 10px 24px rgba(2, 132, 199, .10);
-      --shadow-soft: 0 12px 30px rgba(15, 23, 42, .08);
-      --radius: 16px;
-      --radius-sm: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-hover: 0 4px 12px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
     }
+    
     * { box-sizing: border-box; }
+    
     html { scroll-behavior: smooth; }
+    
     body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Noto Sans', Helvetica, Arial, sans-serif;
-      line-height: 1.7;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
     }
-    a { color: inherit; }
-    .container { max-width: 1280px; margin: 0 auto; padding: 28px 18px 40px; }
+    
+    a { color: inherit; text-decoration: none; }
+    
+    .container { 
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
 
-    /* Topbar */
+    /* Topbar - 더 모던하게 */
     .topbar {
-      position: sticky; top: 0; z-index: 30;
-      background: rgba(255,255,255,.82);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(226,232,240,.7);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    
     .topbar-inner {
-      max-width: 1280px; margin: 0 auto; padding: 10px 18px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
     }
+    
     .brandline {
-      display: flex; align-items: center; gap: 10px; min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
     }
+    
     .dot {
-      width: 10px; height: 10px; border-radius: 999px;
-      background: var(--brand); box-shadow: 0 0 0 4px rgba(2,132,199,.12);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      box-shadow: 0 0 0 4px rgba(2,132,199,0.15);
+      animation: pulse 2s ease-in-out infinite;
     }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
     .brandline .title {
-      font-weight: 800; font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
-      color: #0b4a68; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .toolbar { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+    
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
     .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 13px; padding: 8px 10px; border-radius: 10px;
-      text-decoration: none; border: 1px solid var(--border);
-      background: #fff; color: var(--text);
-      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
     }
-    .btn:hover { background: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-    .btn-outline { border-color: rgba(2,132,199,.45); color: #075985; background: #fff; }
-    .btn-outline:hover { background: #e0f4ff; border-color: rgba(2,132,199,.65); }
+    
+    .btn:hover {
+      background: var(--card);
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn-outline {
+      border-color: rgba(2,132,199,0.3);
+      color: var(--brand);
+      background: rgba(2,132,199,0.05);
+    }
+    
+    .btn-outline:hover {
+      background: rgba(2,132,199,0.1);
+      border-color: var(--brand);
+    }
 
     /* Layout */
     .grid {
-      display: grid; gap: 18px;
-      grid-template-columns: 340px 1fr;
+      display: grid;
+      gap: 24px;
+      grid-template-columns: 280px 1fr;
       align-items: start;
-      margin-top: 18px;
+      margin-top: 24px;
     }
+    
     @media (max-width: 980px) {
       .grid { grid-template-columns: 1fr; }
-      .sidebar { position: static !important; }
+      .sidebar { 
+        position: static !important;
+        order: 2;
+      }
+      .content { order: 1; }
     }
 
-    /* Headings */
-    h1, h2, h3, h4 { line-height: 1.25; margin: 0 0 12px; }
-    h1 { font-size: 30px; letter-spacing: -0.02em; }
-    h2 { font-size: 22px; margin-top: 30px; }
-    h3 { font-size: 18px; margin-top: 18px; }
-    h4 { font-size: 15px; margin-top: 14px; }
+    /* Typography */
+    h1, h2, h3, h4 {
+      line-height: 1.3;
+      margin: 0 0 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; margin-top: 32px; }
+    h3 { font-size: 17px; margin-top: 24px; }
+    h4 { font-size: 15px; margin-top: 16px; }
 
     .muted { color: var(--muted); }
     .small { font-size: 13px; }
 
-    /* Cards */
+    /* Cards - 더 깔끔하게 */
     .card {
-      background: #fff; border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow-soft);
-      overflow: hidden;
-    }
-    .card-pad { padding: 16px 16px; }
-    .card-head {
-      padding: 14px 16px;
-      background: linear-gradient(180deg, rgba(224,244,255,.9), rgba(255,255,255,1));
-      border-bottom: 1px solid rgba(226,232,240,.8);
-    }
-    .card-head .kicker {
-      font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-      font-weight: 800; color: #0b4a68;
-    }
-
-    /* Hero */
-    .hero {
-      background: radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.55) 0%, rgba(186,230,253,.55) 35%, rgba(255,255,255,0) 70%),
-                  linear-gradient(135deg, #38bdf8 0%, #bae6fd 100%);
-      color: #082f49; border-radius: var(--radius); padding: 20px 18px;
-      border: 1px solid #cfe8f6;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 20px;
+      transition: box-shadow 0.2s ease;
     }
-    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .card-pad {
+      padding: 24px 28px;
+    }
+    
+    .card-head {
+      padding: 20px 28px;
+      background: linear-gradient(180deg, rgba(248,250,252,0.8), white);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-head .kicker {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--brand);
+      margin-bottom: 4px;
+    }
+
+    /* Hero - 더 현대적으로 */
+    .hero {
+      background: linear-gradient(135deg, 
+        rgba(56,189,248,0.1) 0%, 
+        rgba(186,230,253,0.15) 50%,
+        rgba(224,242,254,0.1) 100%);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      border: 1px solid rgba(2,132,199,0.2);
+      box-shadow: 0 4px 20px rgba(2,132,199,0.08);
+      margin-bottom: 24px;
+    }
+    
+    .hero .kicker {
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--brand);
+      margin-bottom: 12px;
+    }
+    
+    .hero h1 {
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+    
+    .hero p {
+      color: var(--muted);
+      margin: 0 0 16px;
+      font-size: 15px;
+    }
+    
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
     .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(8,47,73,.92); color: #ecfeff;
-      padding: 6px 10px; border-radius: 999px; font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
-    /* Notes */
+    /* Notes - 더 부드럽게 */
     .note, .warn, .danger {
-      padding: 10px 12px; border-radius: 12px; margin: 14px 0;
-      border: 1px solid rgba(226,232,240,.85);
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      margin: 20px 0;
+      border-left: 4px solid;
+      font-size: 14px;
+      line-height: 1.6;
     }
-    .note { background: #ecfeff; border-left: 5px solid var(--brand); }
-    .warn { background: #fff7ed; border-left: 5px solid var(--warn); }
-    .danger { background: #fef2f2; border-left: 5px solid var(--danger); }
+    
+    .note {
+      background: rgba(224,242,254,0.5);
+      border-color: var(--brand);
+      color: #0c4a6e;
+    }
+    
+    .warn {
+      background: rgba(254,243,199,0.5);
+      border-color: var(--warn);
+      color: #78350f;
+    }
+    
+    .danger {
+      background: rgba(254,226,226,0.5);
+      border-color: var(--danger);
+      color: #7f1d1d;
+    }
 
-    /* Section styling */
+    /* Section */
     .section {
-      scroll-margin-top: 84px;
-      padding: 2px 2px;
+      scroll-margin-top: 100px;
     }
+    
     .h2-row {
-      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-      margin-bottom: 8px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
     }
+    
     .h2-pill {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(2,132,199,.10);
-      border: 1px solid rgba(2,132,199,.20);
-      color: #075985;
-      padding: 6px 10px; border-radius: 999px;
-      font-weight: 800; font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(2,132,199,0.1);
+      border: 1px solid rgba(2,132,199,0.2);
+      color: var(--brand);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 11px;
       white-space: nowrap;
+      letter-spacing: 0.02em;
     }
 
-    /* Tables */
-    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
-    .table {
-      width: 100%; border-collapse: collapse; margin: 0;
-      font-size: 14px; background: #fff;
+    /* Tables - 더 모던하게 */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin: 20px 0;
     }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+      font-size: 14px;
+      background: white;
+    }
+    
     .table th, .table td {
       border-bottom: 1px solid var(--border);
-      padding: 10px 10px; text-align: left; vertical-align: top;
+      padding: 14px 16px;
+      text-align: left;
+      vertical-align: top;
     }
+    
     .table thead th {
-      position: sticky; top: 0;
-      background: #f8fafc;
-      font-size: 13px;
-      color: #0f172a;
+      background: var(--card);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
     }
-    .table tbody tr:hover { background: #f8fafc; }
+    
+    .table tbody tr {
+      transition: background-color 0.15s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: var(--card);
+    }
+    
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
 
-    /* Code blocks */
+    /* Code blocks - 더 세련되게 */
     .code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Noto Sans Mono', monospace;
-      background: #0b1220;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      background: #1e293b;
       color: #e2e8f0;
-      border: 1px solid rgba(148,163,184,.35);
-      padding: 12px 12px;
-      border-radius: 14px;
-      overflow: auto;
+      border: 1px solid #334155;
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
       white-space: pre;
-      box-shadow: 0 8px 20px rgba(2,6,23,.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      margin: 20px 0;
+      font-size: 13px;
+      line-height: 1.6;
     }
-    .code .dim { color: rgba(226,232,240,.75); }
+    
+    .code .dim {
+      color: #94a3b8;
+    }
 
     /* Links */
     .link {
-      color: #0b65a3;
+      color: var(--brand);
       text-decoration: underline;
-      text-underline-offset: 3px;
+      text-underline-offset: 2px;
+      text-decoration-thickness: 1px;
+      transition: color 0.15s ease;
+    }
+    
+    .link:hover {
+      color: #0369a1;
     }
 
-    /* Sidebar / TOC */
+    /* Sidebar / TOC - 더 현대적으로 */
     .sidebar {
-      position: sticky; top: 78px;
+      position: sticky;
+      top: 100px;
     }
+    
     .toc {
-      padding: 12px 12px;
+      padding: 16px;
     }
+    
     .toc .toc-title {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
     }
-    .toc .toc-title b { font-size: 14px; }
+    
+    .toc .toc-title b {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
     .toc a {
       display: block;
-      padding: 7px 8px;
-      border-radius: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
       text-decoration: none;
-      color: var(--text);
+      color: var(--muted);
+      font-size: 13px;
       border: 1px solid transparent;
+      transition: all 0.15s ease;
     }
-    .toc a:hover { background: rgba(2,132,199,.08); border-color: rgba(2,132,199,.15); color: #075985; }
-    .toc .lvl2 { padding-left: 18px; font-size: 13px; color: var(--muted); }
-    .toc .lvl3 { padding-left: 34px; font-size: 12.5px; color: #64748b; }
-    .toc .sep { height: 1px; background: var(--border); margin: 10px 0; }
+    
+    .toc a:hover {
+      background: rgba(2,132,199,0.08);
+      border-color: rgba(2,132,199,0.15);
+      color: var(--brand);
+    }
+    
+    .toc .lvl2 {
+      padding-left: 24px;
+      font-size: 12px;
+    }
+    
+    .toc .lvl3 {
+      padding-left: 40px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    
+    .toc .sep {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
+    }
 
-    /* Content typography tweaks */
-    p { margin: 10px 0; }
-    ul { margin: 8px 0 8px 18px; }
-    ol { margin: 8px 0 8px 18px; }
+    /* Content typography */
+    p {
+      margin: 12px 0;
+      line-height: 1.7;
+    }
+    
+    ul {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    
+    ol {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    
+    li {
+      margin: 6px 0;
+    }
+    
     code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Noto Sans Mono', monospace;
-      font-size: 0.95em;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      padding: 2px 6px;
-      border-radius: 8px;
-    }
-
-    /* Images */
-    .img-frame {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+      font-size: 0.9em;
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      background: #fff;
-      box-shadow: 0 10px 24px rgba(15,23,42,.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #e11d48;
     }
-    .img-frame img { display: block; width: 100%; height: auto; }
 
     /* Footer */
     footer {
-      margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border);
-      color: var(--muted); font-size: 12px;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px 16px 40px;
+      }
+      
+      .topbar-inner {
+        padding: 12px 16px;
+      }
+      
+      .hero {
+        padding: 24px 20px;
+      }
+      
+      .card-pad {
+        padding: 20px;
+      }
+      
+      .card-head {
+        padding: 16px 20px;
+      }
     }
   </style>
 </head>
@@ -253,7 +529,7 @@
         <div class="title">Optimal-LOADS • Consortium Preview</div>
       </div>
       <div class="toolbar">
-        <a class="btn-outline btn" href="/ko" aria-label="한국어로 전환">KO</a>
+        <a class="btn btn-outline" href="/ko" aria-label="한국어로 전환">KO</a>
         <a class="btn btn-outline" href="/inventory" aria-label="Open Metadata Index">Metadata Index</a>
         <a class="btn btn-outline" href="/docs" aria-label="Open API Documentation">API Documentation</a>
       </div>
@@ -268,9 +544,9 @@
       <h1>BLUEMAP Marine Weather Data Inventory User Manual</h1>
       <p>This page is the <strong>user guide</strong> for the BLUEMAP Marine Weather Data Inventory service.</p>
       <div class="badges">
-        <span class="badge">Status: Active</span>
-        <span class="badge">Version: v0.3</span>
-        <span class="badge">Primary Data Source: ECMWF Open Data</span>
+        <span class="badge">✓ Status: Active</span>
+        <span class="badge">📦 Version: v0.3</span>
+        <span class="badge">🌍 Primary Data Source: ECMWF Open Data</span>
       </div>
     </section>
 
@@ -284,8 +560,7 @@
         </div>
         <div class="toc">
           <div class="toc-title">
-            <b>0. Table of Contents</b>
-            <span class="h2-pill">Jump</span>
+            <b>Table of Contents</b>
           </div>
 
           <a href="#sec-1">1. Data Characteristics</a>
@@ -535,8 +810,7 @@
             <h3 id="sec-4-1">4.1 Structure Overview</h3>
             <p>BlueMap Weather Data stores ECMWF IFS forecast data in the following hierarchy.</p>
 
-            <div class="code">
-ecmwf/
+            <div class="code">ecmwf/
 └─ ifs/
    └─ yyyy/                # Forecast run year (e.g., 2025)
       └─ mm/               # Month (01 ~ 12)
@@ -544,8 +818,7 @@ ecmwf/
             └─ hhZ/        # Run cycle (00Z, 06Z, 12Z, 18Z)
                └─ {dataset_code}/
                   └─ {variable}/
-                     └─ dataset file
-            </div>
+                     └─ dataset file</div>
 
             <p>
               This design separates data by <strong>year / month / day / run cycle</strong>,
@@ -595,13 +868,11 @@ ecmwf/
             <h3 id="sec-4-3">4.3 Dataset Code</h3>
             <p>The <code>dataset_code</code> directory is used to classify the data type as follows.</p>
 
-            <div class="code">
-dataset_code
+            <div class="code">dataset_code
 ├─ original
-└─ computed
-            </div>
+└─ computed</div>
 
-            <div class="grid-2">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0;">
               <div class="note">
                 <b>original</b><br />
                 Raw forecast variables provided by ECMWF (not post-processed).<br /><br />
@@ -625,9 +896,7 @@ dataset_code
             <h3 id="sec-4-4">4.4 File Naming Rules</h3>
             <p>All files follow the naming convention below.</p>
 
-            <div class="code">
-{dataset_code}_{variable}_{YYYYMMDD}_{hhZ}_step{NNN}[.grib2]
-            </div>
+            <div class="code">{dataset_code}_{variable}_{YYYYMMDD}_{hhZ}_step{NNN}[.grib2]</div>
 
             <p>Each component means:</p>
             <ul>
@@ -644,16 +913,13 @@ dataset_code
             </ul>
 
             <h4>Examples</h4>
-            <div class="code">
-original_swh_20250701_00Z_step024.grib2
-computed_wind_speed_10m_20250701_00Z_step024
-            </div>
+            <div class="code">original_swh_20250701_00Z_step024.grib2
+computed_wind_speed_10m_20250701_00Z_step024</div>
 
             <h3 id="sec-4-5">4.5 Example Storage Layout</h3>
             <p>Below is an example of the BlueMap Weather Data storage layout.</p>
 
-            <div class="code">
-ecmwf/ifs/2025/07/01/00Z/
+            <div class="code">ecmwf/ifs/2025/07/01/00Z/
 ├─ computed/
 │  ├─ wind_dir_10m/
 │  │  ├─ computed_wind_dir_10m_20250701_00Z_step000
@@ -668,8 +934,7 @@ ecmwf/ifs/2025/07/01/00Z/
    ├─ 10v/
    ├─ mwd/
    ├─ mwp/
-   └─ swh/
-            </div>
+   └─ swh/</div>
 
           </div>
         </section>
@@ -799,16 +1064,14 @@ ecmwf/ifs/2025/07/01/00Z/
           <div class="card-pad">
 
             <h3 id="sec-6-1">6.1 Request Example</h3>
-            <div class="code">
-http://52.78.244.211/api/griddata
+            <div class="code">http://52.78.244.211/api/griddata
  ?source=ecmwf
  &dataset_code=original
  &model=ifs
  &variable=swh
  &run_time_utc=2025-07-03T00:00:00Z
  &step_hours=24
- &bbox=128&bbox=34&bbox=130&bbox=36
-            </div>
+ &bbox=128&bbox=34&bbox=130&bbox=36</div>
 
             <h3 id="sec-6-2">6.2 Key Parameters</h3>
             <ul>
@@ -859,14 +1122,12 @@ http://52.78.244.211/api/griddata
             <p>Therefore, index 0 corresponds to the <strong>southwest (SW)</strong> grid cell.</p>
 
             <h3 id="sec-7-2">7.2 Example Response Array (4 × 4 grid)</h3>
-            <div class="code">
-values = [
+            <div class="code">values = [
    1,  2,  3,  4,
    5,  6,  7,  8,
    9, 10, 11, 12,
   13, 14, 15, 16
-]
-            </div>
+]</div>
 
             <ul class="small">
               <li>Total length = <code>nx × ny = 4 × 4</code></li>
@@ -874,8 +1135,7 @@ values = [
             </ul>
 
             <h3 id="sec-7-3">7.3 Meaning of the Grid Layout on a Map</h3>
-            <div class="code">
-North (N)
+            <div class="code">North (N)
  ↑
  |   13 ── 14 ── 15 ── 16
  |    9 ── 10 ── 11 ── 12
@@ -883,8 +1143,7 @@ North (N)
  |    1 ──  2 ──  3 ──  4
  |
  └────────────────────────→ East (E)
-     West (W)
-            </div>
+     West (W)</div>
 
             <p class="small"><b>Notes</b>:</p>
             <ul class="small">
@@ -904,9 +1163,7 @@ North (N)
 
             <h3 id="sec-7-4">7.4 Relationship Between Array Index and Coordinates</h3>
             <p>The index is computed as:</p>
-            <div class="code">
-index = y * nx + x
-            </div>
+            <div class="code">index = y * nx + x</div>
 
             <p>Where:</p>
             <ul>
@@ -936,14 +1193,10 @@ index = y * nx + x
           <div class="card-pad">
 
             <h3 id="sec-8-1">8.1 Wind Speed</h3>
-            <div class="code">
-speed = np.hypot(da_u.values, da_v.values)
-            </div>
+            <div class="code">speed = np.hypot(da_u.values, da_v.values)</div>
 
             <h3 id="sec-8-2">8.2 Wind Direction (TO-direction)</h3>
-            <div class="code">
-direc = (90.0 - np.degrees(np.arctan2(da_v.values, da_u.values))) %360.0
-            </div>
+            <div class="code">direc = (90.0 - np.degrees(np.arctan2(da_v.values, da_u.values))) %360.0</div>
 
             <ul class="small">
               <li>0° = North</li>
@@ -981,16 +1234,14 @@ direc = (90.0 - np.degrees(np.arctan2(da_v.values, da_u.values))) %360.0
               Therefore, wind speed and direction are computed using the <strong>TO-direction</strong> convention.
             </p>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-2">(2) Wind Speed Formula</h3>
             <p>Wind speed is defined as the magnitude of the wind vector and is computed as the Euclidean length of the two components.</p>
-            <div class="code">
-speed = np.hypot(u, v)
-            </div>
+            <div class="code">speed = np.hypot(u, v)</div>
             <p>This is the standard definition commonly used in meteorology and oceanography.</p>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-3">(3) Basics of Wind Direction</h3>
             <p>Wind direction in this system is based on:</p>
@@ -1026,13 +1277,11 @@ speed = np.hypot(u, v)
 
             <p>So a conversion is required.</p>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-4">(4) Why <code>atan2</code>?</h3>
             <p>We use <code>atan2(v, u)</code> to compute the vector direction.</p>
-            <div class="code">
-θ = atan2(v, u)
-            </div>
+            <div class="code">θ = atan2(v, u)</div>
 
             <p><code>atan2</code> has the following advantages:</p>
             <ul>
@@ -1043,7 +1292,7 @@ speed = np.hypot(u, v)
 
             <p>This angle is measured <strong>from the east</strong> and increases <strong>counterclockwise</strong>.</p>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-5">(5) Conversion to Navigation/Meteorological Bearing</h3>
             <p>To match the bearing convention of this service, we apply:</p>
@@ -1053,9 +1302,7 @@ speed = np.hypot(u, v)
             </ol>
 
             <p>Combined into a single expression:</p>
-            <div class="code">
-dir_to =90.0 - np.degrees(np.arctan2(v, u))
-            </div>
+            <div class="code">dir_to =90.0 - np.degrees(np.arctan2(v, u))</div>
 
             <p>The result has these properties:</p>
             <ul>
@@ -1065,26 +1312,22 @@ dir_to =90.0 - np.degrees(np.arctan2(v, u))
               <li>Represents the direction the wind is <strong>blowing to</strong> (TO)</li>
             </ul>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-6">(6) Angle Normalization (Modulo 360)</h3>
             <p>The result can be negative or exceed 360°, so we normalize it into the standard bearing range.</p>
-            <div class="code">
-wind_dir_to = (90.0 - np.degrees(np.arctan2(v, u))) %360.0
-            </div>
+            <div class="code">wind_dir_to = (90.0 - np.degrees(np.arctan2(v, u))) %360.0</div>
 
             <p>
               This does not change the physical direction; it selects the representative value in the range
               <strong>0 ≤ angle &lt; 360</strong>.
             </p>
 
-            <hr style="border:none; border-top:1px solid var(--border); margin: 18px 0;" />
+            <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;" />
 
             <h3 id="app-7">(7) Final Formula Summary</h3>
-            <div class="code">
-wind_speed = np.hypot(u, v)
-wind_dir_to = (90.0 - np.degrees(np.arctan2(v, u))) %360.0
-            </div>
+            <div class="code">wind_speed = np.hypot(u, v)
+wind_dir_to = (90.0 - np.degrees(np.arctan2(v, u))) %360.0</div>
 
             <p>These formulas ensure:</p>
             <ul>

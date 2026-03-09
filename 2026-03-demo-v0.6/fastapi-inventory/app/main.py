@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import json
+import math
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 
@@ -15,7 +16,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.ingestion import router as ingestion_router
 
 from app.db import get_assets_collection, get_directories_collection
-from app.api import router as api_router
+from app.api import router as api_router, meta_router
 
 from urllib.parse import quote
 
@@ -28,7 +29,7 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["urlencode"] = lambda v: quote(v or "")
 
 # (선택) /inventory 루트에서 보여줄 시작 경로
-ROOT_DIR = os.getenv("INVENTORY_ROOT_DIR", "ecmwf/ifs/")  # trailing "/" 권장
+ROOT_DIR = os.getenv("INVENTORY_ROOT_DIR", "/")  # ✅ 루트를 "/"로 변경
 
 app = FastAPI(
     title=APP_TITLE,
@@ -58,6 +59,7 @@ async def root_en():
 
 app.include_router(api_router)
 app.include_router(ingestion_router)
+app.include_router(meta_router)
 
 # ---- CORS ----
 app.add_middleware(
@@ -139,22 +141,19 @@ def _fmt_lm(v: Any) -> Optional[str]:
     return None
 
 
-def _build_api_example(doc: Dict[str, Any], bbox: List[str]) -> str:
+def _build_api_example(doc: Dict[str, Any], lat: float = 35.0, lon: float = 129.0, buffer_km: float = 50.0) -> str:
     """
-    Final griddata API example
-    - stream, type 제거
+    Final griddata API example - 중심점 + 버퍼 방식
+    - 모든 필드를 doc에서 가져와서 동적 생성
     - datetime은 RFC3339 그대로 (NO URL encoding)
     """
-    source = doc.get("source", "ecmwf")
-    dataset_code = doc.get("dataset_code", "original")
-    model = doc.get("model", "ifs")
+    source = doc.get("source", "")
+    dataset_code = doc.get("dataset_code", "")
+    model = doc.get("model", "")
     variable = doc.get("variable", "")
 
-    # ✅ assets_metadata 필드명: run_time_utc
     run_time_utc = _to_iso_z(doc.get("run_time_utc"))
     step_hours = int(doc.get("step_hours", 0))
-
-    bbox_q = "&".join(f"bbox={v}" for v in bbox)
 
     return (
         "http://52.78.244.211/api/griddata"
@@ -164,7 +163,61 @@ def _build_api_example(doc: Dict[str, Any], bbox: List[str]) -> str:
         f"&variable={variable}"
         f"&run_time_utc={run_time_utc}"
         f"&step_hours={step_hours}"
-        f"&{bbox_q}"
+        f"&lat={lat}"
+        f"&lon={lon}"
+        f"&buffer_km={buffer_km}"
+    )
+
+
+def _build_api_example_corners(doc: Dict[str, Any], lat: float = 35.0, lon: float = 129.0, buffer_km: float = 50.0) -> str:
+    """
+    Final griddata API example - 북서/남동 모서리 방식
+    - 중심점(lat, lon)과 버퍼(buffer_km)를 모서리 좌표로 변환
+    - nw_lon, nw_lat, se_lon, se_lat 파라미터 사용
+    """
+    source = doc.get("source", "")
+    dataset_code = doc.get("dataset_code", "")
+    model = doc.get("model", "")
+    variable = doc.get("variable", "")
+
+    run_time_utc = _to_iso_z(doc.get("run_time_utc"))
+    step_hours = int(doc.get("step_hours", 0))
+
+    # km → degree 변환
+    buffer_deg_lat = buffer_km / 111.0
+    buffer_deg_lon = buffer_km / (111.0 * math.cos(math.radians(lat)))
+    
+    # 최소 버퍼 보장 (API와 동일한 로직)
+    min_buffer_deg = 0.125  # 0.25° / 2
+    buffer_deg_lat = max(buffer_deg_lat, min_buffer_deg)
+    buffer_deg_lon = max(buffer_deg_lon, min_buffer_deg / math.cos(math.radians(lat)))
+    
+    # 모서리 계산
+    # nw = 북서(좌상단) = (min_lon, max_lat)
+    # se = 남동(우하단) = (max_lon, min_lat)
+    nw_lon = lon - buffer_deg_lon
+    nw_lat = lat + buffer_deg_lat
+    se_lon = lon + buffer_deg_lon
+    se_lat = lat - buffer_deg_lat
+    
+    # 소수점 6자리로 반올림 (경도 0.000001° ≈ 0.11m)
+    nw_lon = round(nw_lon, 6)
+    nw_lat = round(nw_lat, 6)
+    se_lon = round(se_lon, 6)
+    se_lat = round(se_lat, 6)
+
+    return (
+        "http://52.78.244.211/api/griddata"
+        f"?source={source}"
+        f"&dataset_code={dataset_code}"
+        f"&model={model}"
+        f"&variable={variable}"
+        f"&run_time_utc={run_time_utc}"
+        f"&step_hours={step_hours}"
+        f"&nw_lon={nw_lon}"
+        f"&nw_lat={nw_lat}"
+        f"&se_lon={se_lon}"
+        f"&se_lat={se_lat}"
     )
 
 
@@ -176,7 +229,9 @@ def _build_api_example(doc: Dict[str, Any], bbox: List[str]) -> str:
 async def inventory_index(
     request: Request,
     path: str = Query("/", description="directory-like path. e.g. /ecmwf/ifs/2025/2025-07/2025-07-16/06Z/"),
-    bbox: List[str] = Query(default=["128", "34", "130", "36"], description="bbox repeated 4 times: minLon,minLat,maxLon,maxLat"),
+    lat: float = Query(default=35.0, description="Center latitude"),
+    lon: float = Query(default=129.0, description="Center longitude"),
+    buffer_km: float = Query(default=50.0, ge=1.0, le=500.0, description="Buffer distance in km"),
 ):
     assets = await get_assets_collection()
     dirs = await get_directories_collection()
@@ -202,11 +257,14 @@ async def inventory_index(
         ddoc = await dirs.find_one({"_id": prefix_dir}, {"children_dirs": 1})
         children = (ddoc or {}).get("children_dirs", [])
     else:
-        # 루트(/)에서 정책: ROOT_DIR 한 개만 보여주기
-        root = (ROOT_DIR or "").lstrip("/")
-        if root and not root.endswith("/"):
-            root += "/"
-        children = [root] if root else []
+        # ✅ 루트(/)에서: 최상위 디렉토리들 모두 표시
+        # directories 컬렉션에서 depth=1인 디렉토리들 찾기
+        top_level_docs = await dirs.find(
+            {"_id": {"$regex": "^[^/]+/$"}},  # "ecmwf/", "noaa/", "gebco/" 등
+            {"_id": 1}
+        ).to_list(length=1000)
+        
+        children = sorted([d["_id"] for d in top_level_docs])
 
     for child in sorted(children):
         name = child.rstrip("/")
@@ -242,13 +300,17 @@ async def inventory_index(
 
     for d in file_docs:
         display_name = d.get("name") or d.get("inventory_name") or "(unnamed)"
-        api_example = _build_api_example(d, bbox=bbox)
+        
+        # 두 가지 API URL 생성
+        api_url = _build_api_example(d, lat=lat, lon=lon, buffer_km=buffer_km)
+        api_url_corners = _build_api_example_corners(d, lat=lat, lon=lon, buffer_km=buffer_km)
 
         entries.append({
             "name": display_name,
             "is_dir": False,
             "path": None,
-            "api_url": api_example,
+            "api_url": api_url,              # 중심점 + 버퍼
+            "api_url_corners": api_url_corners,  # 북서-남동 모서리
             "file_id": d.get("natural_key"),
             "last_modified": _fmt_lm(d.get("created_at")),
             "size_human": _human_size(d.get("size_bytes")),

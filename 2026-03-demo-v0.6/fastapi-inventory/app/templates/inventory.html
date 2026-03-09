@@ -1,0 +1,567 @@
+{# templates/inventory.html #}
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  
+  .mono { 
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; 
+  }
+  
+  .header {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  
+  .page-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.01em;
+  }
+  
+  .breadcrumb { 
+    display: flex; 
+    align-items: center; 
+    gap: 6px;
+    font-size: 14px;
+    color: #666;
+    flex-wrap: wrap;
+  }
+  
+  .breadcrumb a {
+    color: #2563eb;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  
+  .breadcrumb a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
+  
+  .breadcrumb-sep {
+    color: #d1d5db;
+    user-select: none;
+  }
+  
+  .description {
+    background: #f8fafc;
+    border-left: 3px solid #3b82f6;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #475569;
+  }
+  
+  .table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  
+  table { 
+    border-collapse: collapse; 
+    width: 100%;
+  }
+  
+  th, td { 
+    padding: 14px 20px; 
+    text-align: left;
+  }
+  
+  thead {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  thead th { 
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  
+  tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.15s;
+  }
+  
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+  
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+  
+  tbody td {
+    font-size: 14px;
+    color: #334155;
+  }
+  
+  .dir-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  
+  .file-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  
+  .dir-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.15s;
+  }
+  
+  .dir-link:hover {
+    color: #1d4ed8;
+  }
+  
+  .parent-dir {
+    color: #64748b;
+    font-style: italic;
+  }
+  
+  .file-name {
+    color: #1e293b;
+    font-weight: 400;
+  }
+  
+  .muted { 
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  
+  /* File row with hover actions */
+  .file-row {
+    position: relative;
+  }
+  
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .file-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .file-row:hover .file-actions {
+    opacity: 1;
+  }
+  
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  
+  .icon-btn:hover {
+    background: #f8fafc;
+    border-color: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(2,132,199,0.15);
+  }
+  
+  .icon-btn:active {
+    transform: translateY(0);
+  }
+  
+  .icon-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: #475569;
+  }
+  
+  .icon-btn:hover svg {
+    stroke: #0284c7;
+  }
+  
+  .icon-btn.copied {
+    background: #dcfce7;
+    border-color: #86efac;
+  }
+  
+  .icon-btn.copied svg {
+    stroke: #166534;
+  }
+  
+  /* Different colors for different button types */
+  .icon-btn.btn-center:hover {
+    border-color: #0ea5e9;
+  }
+  
+  .icon-btn.btn-center:hover svg {
+    stroke: #0ea5e9;
+  }
+  
+  .icon-btn.btn-corner:hover {
+    border-color: #8b5cf6;
+  }
+  
+  .icon-btn.btn-corner:hover svg {
+    stroke: #8b5cf6;
+  }
+  
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: #1e293b;
+    color: white;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #1e293b;
+  }
+  
+  .icon-btn:hover .tooltip {
+    opacity: 1;
+  }
+  
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 280px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 1000;
+  }
+  
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  
+  .toast-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  
+  .toast-icon.success {
+    color: #10b981;
+  }
+  
+  .toast-content {
+    flex: 1;
+  }
+  
+  .toast-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+  }
+  
+  .toast-message {
+    font-size: 12px;
+    color: #475569;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  @media (max-width: 768px) {
+    .container {
+      padding: 16px;
+    }
+    
+    th, td {
+      padding: 10px 12px;
+    }
+    
+    .header {
+      padding: 16px 20px;
+    }
+    
+    .toast {
+      right: 16px;
+      bottom: 16px;
+      min-width: auto;
+      max-width: calc(100vw - 32px);
+    }
+    
+    .file-actions {
+      opacity: 1;
+    }
+  }
+</style>
+
+<div class="container">
+  <div class="header">
+    <h1 class="page-title">Directory Browser</h1>
+    <div class="breadcrumb mono">
+      <a href="/inventory?path=/">🏠</a>
+      {%- set parts = current_path.strip('/').split('/') -%}
+      {%- for part in parts -%}
+        {%- if part -%}
+          <span class="breadcrumb-sep">/</span>
+          {%- set path_so_far = '/' + parts[:loop.index]|join('/') + '/' -%}
+          <a href="/inventory?path={{ path_so_far|urlencode }}">
+            {%- if '-' in part and part[0:4].isdigit() -%}
+              {{ part.split('-')[-1] }}
+            {%- else -%}
+              {{ part }}
+            {%- endif -%}
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  {% if description %}
+    <div class="description mono">
+      {{ description }}
+    </div>
+  {% endif %}
+
+  <div class="table-container">
+    <table class="mono">
+      <thead>
+        <tr>
+          <th style="width:50%;">Name</th>
+          <th style="width:25%;">Last modified</th>
+          <th style="width:15%;">Size</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {# Parent Directory #}
+        {% if parent_path %}
+        <tr>
+          <td>
+            <a href="/inventory?path={{ parent_path|urlencode }}" class="dir-link parent-dir">
+              <svg class="dir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              Parent Directory
+            </a>
+          </td>
+          <td class="muted">-</td>
+          <td class="muted">-</td>
+        </tr>
+        {% endif %}
+
+        {# Entries #}
+        {% for e in entries %}
+        <tr class="{% if not e.is_dir %}file-row{% endif %}">
+          <td>
+            {% if e.is_dir %}
+              <a href="/inventory?path={{ e.path|urlencode }}" class="dir-link">
+                <svg class="dir-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
+                {{ e.name }}
+              </a>
+            {% else %}
+              <div class="file-info">
+                <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                <span class="file-name">{{ e.name }}</span>
+                <div class="file-actions">
+                  <!-- Center + Buffer API -->
+                  <button
+                    type="button"
+                    class="icon-btn btn-center"
+                    data-url="{{ e.api_url }}"
+                    data-type="center"
+                    onclick="copyApiUrl(this)"
+                    aria-label="Copy Center+Buffer API URL"
+                  >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="tooltip">📍 Center+Buffer</span>
+                  </button>
+                  
+                  <!-- Corner API -->
+                  <button
+                    type="button"
+                    class="icon-btn btn-corner"
+                    data-url="{{ e.api_url_corners }}"
+                    data-type="corner"
+                    onclick="copyApiUrl(this)"
+                    aria-label="Copy Corner (NW/SE) API URL"
+                  >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                    <span class="tooltip">📐 NW/SE Corners</span>
+                  </button>
+                  
+                  <!-- Open in new tab -->
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    data-url="{{ e.api_url }}"
+                    onclick="openApiUrl(this)"
+                    aria-label="Open API URL in new tab"
+                  >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    <span class="tooltip">🔗 Open in new tab</span>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+          </td>
+          <td class="muted">{{ e.last_modified or "-" }}</td>
+          <td class="muted">{{ e.size_human or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast">
+  <svg class="toast-icon success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  <div class="toast-content">
+    <div class="toast-title" id="toast-title">API URL copied!</div>
+    <div class="toast-message" id="toast-url"></div>
+  </div>
+</div>
+
+<script>
+  let toastTimeout;
+
+  function showToast(url, type) {
+    const toast = document.getElementById('toast');
+    const urlDisplay = document.getElementById('toast-url');
+    const titleDisplay = document.getElementById('toast-title');
+    
+    // Update title based on type
+    if (type === 'center') {
+      titleDisplay.textContent = '📍 Center+Buffer URL copied!';
+    } else if (type === 'corner') {
+      titleDisplay.textContent = '📐 Corner (NW/SE) URL copied!';
+    } else {
+      titleDisplay.textContent = 'API URL copied!';
+    }
+    
+    urlDisplay.textContent = url;
+    toast.classList.add('show');
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  async function copyApiUrl(btn) {
+    const url = btn.dataset.url || "";
+    const type = btn.dataset.type || "";
+    
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      
+      // Button feedback
+      btn.classList.add('copied');
+      const originalSvg = btn.querySelector('svg').outerHTML;
+      btn.querySelector('svg').outerHTML = `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      `;
+      
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.querySelector('svg').outerHTML = originalSvg;
+      }, 1200);
+      
+      // Show toast with type
+      showToast(url, type);
+    } catch (e) {
+      window.prompt("Copy this URL:", url);
+    }
+  }
+
+  function openApiUrl(btn) {
+    const url = btn.dataset.url || "";
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+</script>
+
+{% endblock %}

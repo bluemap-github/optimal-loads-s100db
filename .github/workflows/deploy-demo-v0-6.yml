@@ -1,0 +1,48 @@
+name: Deploy demo v0.6
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 (demo v0.6)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}          # ← V04 제거
+          username: ${{ secrets.EC2_USER }}       
+          key: ${{ secrets.EC2_SSH_KEY }}         # ← V04 제거
+          port: 22
+          script: |
+            set -e
+            
+            PROJECT_ROOT="$HOME/optimal-loads-gfs-viewer"
+            DEMO_DIR="$PROJECT_ROOT/2026-03-demo-v0.6"
+            ENV_FILE="$PROJECT_ROOT/2026-03-demo-v0.6/.env_06"
+
+            # Update code
+            cd "$PROJECT_ROOT"
+            git fetch origin
+            git checkout -B main origin/main
+            git pull origin main
+            
+            # Deploy FastAPI
+            cd "$DEMO_DIR/fastapi-inventory"
+
+            sudo docker rm -f demo-v0-6-api 2>/dev/null || true
+            sudo docker build --no-cache -t demo-v0-6-api:latest .
+            
+            sudo docker run -d \
+              --name demo-v0-6-api \
+              --restart=always \
+              --env-file "$ENV_FILE" \
+              -p 80:8000 \
+              demo-v0-6-api:latest
